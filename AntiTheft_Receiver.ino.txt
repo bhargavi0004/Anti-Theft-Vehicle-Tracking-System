@@ -1,0 +1,71 @@
+#include <ESP8266WiFi.h>
+#include <espnow.h>
+int cnt=0;
+int buz=D2;
+// Callback when data is sent
+void onSent(uint8_t *macAddr, uint8_t sendStatus) {
+ // Serial.print("Device B Send Status: ");
+  //Serial.println(sendStatus == 0 ? "Success" : "Fail");
+  int x=1;
+}
+
+// Callback when data is received
+void onReceive(uint8_t *macAddr, uint8_t *incomingData, uint8_t len) {
+  
+  for (int i = 0; i < len; i++) {
+    Serial.print((char)incomingData[i]);
+    cnt=0;
+  }
+  // Serial.println();
+
+  // Respond to the sender
+ // const char *response = "Acknowledged by Device B";
+ // esp_now_send(macAddr, (uint8_t *)response, strlen(response));
+}
+int ii=0;
+void setup() {
+  Serial.begin(9600);
+
+  WiFi.mode(WIFI_STA); // Set WiFi mode to Station
+  WiFi.disconnect();   // Disconnect from any network
+pinMode(buz,OUTPUT);
+  // Initialize ESP-NOW
+  if (esp_now_init() != 0) {
+    Serial.println("Failed");
+    return;
+  }
+
+  // Register callbacks
+  esp_now_set_self_role(ESP_NOW_ROLE_COMBO); // Set as both sender and receiver
+  esp_now_register_send_cb(onSent);
+  esp_now_register_recv_cb(onReceive);
+
+  // Add broadcast peer
+  uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+  esp_now_add_peer(broadcastAddress, ESP_NOW_ROLE_COMBO, 1, NULL, 0);
+}
+
+void loop() {
+  if(Serial.available())
+  {
+    String rcv = Serial.readStringUntil('\n');
+    const char *message=rcv.c_str();
+  
+  uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+
+  // Send broadcast message
+  esp_now_send(broadcastAddress, (uint8_t *)message, strlen(message));
+ // Serial.println("Device B: Message sent");
+  //delay(100); // Adjust delay as needed
+  }
+  cnt=cnt+1;
+  delay(100);
+  if(cnt>50)
+  {
+    digitalWrite(buz,1);
+    delay(300);
+    digitalWrite(buz,0);
+    delay(300);
+  }
+  
+}
